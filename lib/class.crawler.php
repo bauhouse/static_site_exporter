@@ -27,13 +27,13 @@
 		public static function render($url='/'){
 			
 			include_once(TOOLKIT . '/class.gateway.php');
-            $ch = new Gateway;
-            
-            $ch->init();
-            $ch->setopt('URL', URL . '/' . ltrim($url, '/'));
+			$ch = new Gateway;
+
+			$ch->init();
+			$ch->setopt('URL', URL . '/' . ltrim($url, '/'));
 			$ch->setopt('RETURNHEADERS', 1);
-			
-            $result = $ch->exec();
+
+			$result = $ch->exec();
 			
 			$parts = preg_split('/(\r\n){2,}/', $result, -1, PREG_SPLIT_NO_EMPTY);
 			
@@ -163,8 +163,12 @@
 			
 			while($Iterator->valid()) {
 				
-				$bits = parse_url($Iterator->current());
+				$current_url = $Iterator->current();
 				
+				$abs_url = rel2abs($current_url, URL);
+
+				$bits = parse_url($current_url);
+
 				$seed = str_replace($root_path, '', $bits['path']);
 				
 				$sql = "SELECT `id` FROM `".self::TABLE."` WHERE `url` = '$seed' LIMIT 1";
@@ -205,7 +209,35 @@
 			return $list;
 			
 		}
-		
+
+		function rel2abs($rel, $base){
+			/* return if already absolute URL */
+			if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
+
+			/* queries and anchors */
+			if ($rel[0]=='#' || $rel[0]=='?') return $base.$rel;
+
+			/* parse base URL and convert to local variables:
+			   $scheme, $host, $path */
+			extract(parse_url($base));
+
+			/* remove non-directory element from path */
+			$path = preg_replace('#/[^/]*$#', '', $path);
+
+			/* destroy path if relative url points to root */
+			if ($rel[0] == '/') $path = '';
+
+			/* dirty absolute URL */
+			$abs = "$host$path/$rel";
+
+			/* replace '//' or '/./' or '/foo/../' with '/' */
+			$re = array('#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#');
+			for($n=1; $n>0; $abs=preg_replace($re, '/', $abs, -1, $n)) {}
+
+			/* absolute URL is ready! */
+			return $scheme.'://'.$abs;
+		}
+
 	}
 
 
