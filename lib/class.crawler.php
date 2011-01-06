@@ -165,12 +165,13 @@
 				
 				$current_url = $Iterator->current();
 				
-				$abs_url = rel2abs($current_url, URL);
+				if (substr($current_url,0,1) == '.') {
+					$seed = relativeToAbsolute($current_url);
+				} else {
+					$bits = parse_url($current_url);
+					$seed = str_replace($root_path, '', $bits['path']);
+				}
 
-				$bits = parse_url($current_url);
-
-				$seed = str_replace($root_path, '', $bits['path']);
-				
 				$sql = "SELECT `id` FROM `".self::TABLE."` WHERE `url` = '$seed' LIMIT 1";
 				
 				if(!preg_match('/^\/symphony\//i', $seed) && !Symphony::Database()->fetchVar('id', 0, $sql))
@@ -210,32 +211,9 @@
 			
 		}
 
-		function rel2abs($rel, $base){
-			/* return if already absolute URL */
-			if (parse_url($rel, PHP_URL_SCHEME) != '') return $rel;
-
-			/* queries and anchors */
-			if ($rel[0]=='#' || $rel[0]=='?') return $base.$rel;
-
-			/* parse base URL and convert to local variables:
-			   $scheme, $host, $path */
-			extract(parse_url($base));
-
-			/* remove non-directory element from path */
-			$path = preg_replace('#/[^/]*$#', '', $path);
-
-			/* destroy path if relative url points to root */
-			if ($rel[0] == '/') $path = '';
-
-			/* dirty absolute URL */
-			$abs = "$host$path/$rel";
-
-			/* replace '//' or '/./' or '/foo/../' with '/' */
-			$re = array('#(/\.?/)#', '#/(?!\.\.)[^/]+/\.\./#');
-			for($n=1; $n>0; $abs=preg_replace($re, '/', $abs, -1, $n)) {}
-
-			/* absolute URL is ready! */
-			return $scheme.'://'.$abs;
+		function relativeToAbsolute($url) {
+			$path = preg_replace('#(\.\.\/)+|(\.\/)#', '/', $url);
+			return $path;
 		}
 
 	}
