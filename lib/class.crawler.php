@@ -192,21 +192,28 @@
 			
 			foreach($matches as $url){
 				
+				if ($url{0} == '.') {
+					$url = URL . relativeToAbsolute($url);
+				}
+
 				$bits = parse_url($url);
-				
+
 				if($bits['path'] == $url){
 					if($url{0} == '/') $url = URL . $url;
 					else continue;
 				}
-				
+
 				if('?' . $bits['query'] == $url) continue;
 				elseif(in_array($url, $ignore)) continue;
 				elseif($url == URL || substr($url, 0, strlen(URL)) != URL) continue;
-						
+
 				$list[] = $url;
 						
 			}
 			
+			// After creating consistently formatted URLs, remove duplicates
+			$list = array_remove_duplicates($list);
+
 			return $list;
 			
 		}
